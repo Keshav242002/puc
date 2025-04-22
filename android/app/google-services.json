@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "74228757335",
+    "project_id": "indiapuc-ba78d",
+    "storage_bucket": "indiapuc-ba78d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:74228757335:android:6c2f53e3152eec43dec412",
+        "android_client_info": {
+          "package_name": "com.awt.puc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7iaj1zYzFvlPgx60aMfdqZKW7-sIFenY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
