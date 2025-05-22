@@ -1,8 +1,8 @@
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:puc/components/button.dart';
 import 'package:puc/components/my_button.dart';
@@ -13,7 +13,6 @@ import 'package:puc/screens/login_screen.dart';
 import 'package:puc/utils/constants.dart';
 import 'package:puc/utils/mylogoalert.dart';
 import 'package:puc/utils/shared_prefrences.dart';
-
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -36,7 +35,6 @@ class _SignupScreenState extends State<SignupScreen> {
   bool isLoading = false;
   String? _verificationId;
 
-
   @override
   void dispose() {
     mobileController.dispose();
@@ -49,10 +47,18 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
+  bool _areFieldsValid() {
+    return firstnameController.text.trim().isNotEmpty &&
+        lastnameController.text.trim().isNotEmpty &&
+        mobileController.text.trim().isNotEmpty &&
+        emailController.text.trim().isNotEmpty &&
+        cityController.text.trim().isNotEmpty &&
+        stateController.text.trim().isNotEmpty &&
+        passwordController.text.trim().isNotEmpty;
+  }
+
   Future<void> _signup() async {
-    setState(() {
-      isLoading = true;
-    });
+    if (mounted) setState(() => isLoading = true);
 
     try {
       var dio = Dio();
@@ -66,7 +72,6 @@ class _SignupScreenState extends State<SignupScreen> {
         return client;
       };
 
-      String url = '/auth/signup';
       final payload = {
         "first_name": firstnameController.text,
         "last_name": lastnameController.text,
@@ -78,7 +83,7 @@ class _SignupScreenState extends State<SignupScreen> {
         "state": stateController.text,
       };
 
-      final response = await dio.post(url, data: payload);
+      final response = await dio.post('/auth/signup', data: payload);
 
       if (response.data["status"] == true) {
         final data = response.data["data"];
@@ -89,76 +94,86 @@ class _SignupScreenState extends State<SignupScreen> {
         glbPwd = passwordController.text;
         glbToken = response.data["token"];
 
-        SharedPrefData(
+        await SharedPrefData(
           userMobile: mobileController.text,
           userPWD: passwordController.text,
         ).setUserData();
 
+        if (mounted) setState(() => isLoading = false);
+
         Navigator.pop(context);
         Navigator.pushNamed(context, Dashboard.id);
       } else {
+        if (mounted) setState(() => isLoading = false);
+
         myLogoAlert(
-          message: response.data["message"],
+          message: response.data["message"] ?? "Signup failed. Please try again.",
           context: context,
           navigateEnabled: false,
           route: '',
         );
       }
     } catch (e) {
+      if (mounted) setState(() => isLoading = false);
+
+      String errorMessage = "Something went wrong, Please try again later";
+
+      if (e is DioException) {
+        if (e.response != null && e.response?.data != null) {
+          errorMessage = e.response?.data["message"] ?? errorMessage;
+        }
+      }
+
       myLogoAlert(
-        message: "Something went wrong, Please try again later",
+        message: errorMessage,
         context: context,
         navigateEnabled: false,
         route: '',
       );
     }
-
-    setState(() {
-      isLoading = false;
-    });
-  }
-
-  bool _areFieldsValid() {
-    return firstnameController.text.trim().isNotEmpty &&
-        lastnameController.text.trim().isNotEmpty &&
-        mobileController.text.trim().isNotEmpty &&
-        emailController.text.trim().isNotEmpty &&
-        cityController.text.trim().isNotEmpty &&
-        stateController.text.trim().isNotEmpty &&
-        passwordController.text.trim().isNotEmpty;
   }
 
 
   Future<void> _startPhoneNumberVerification(String phoneNumber) async {
+    if (mounted) setState(() => isLoading = true);
+
     String phoneWithCountryCode = '+91$phoneNumber';
-    _firebaseAuth.verifyPhoneNumber(
+    await _firebaseAuth.verifyPhoneNumber(
       phoneNumber: phoneWithCountryCode,
       timeout: const Duration(seconds: 60),
       verificationCompleted: (PhoneAuthCredential credential) async {
-        await _firebaseAuth.signInWithCredential(credential);
-
-        _signup();
+        try {
+          await _firebaseAuth.signInWithCredential(credential);
+          if (mounted) setState(() => isLoading = true);
+          await _signup();
+        } catch (e) {
+          if (mounted) setState(() => isLoading = false);
+          myLogoAlert(
+            context: context,
+            message: "Auto verification failed. Try manually.",
+            navigateEnabled: false,
+            route: '',
+          );
+        }
       },
       verificationFailed: (FirebaseAuthException e) {
-        setState(() {
-          isLoading = false;
-        });
+        if (mounted) setState(() => isLoading = false);
         myLogoAlert(
           context: context,
-          message: e.message!,
+          message: e.message ?? "Phone verification failed",
           navigateEnabled: false,
           route: '',
         );
       },
       codeSent: (String verificationId, int? resendToken) {
-        setState(() {
+        if (mounted) setState(() {
           _verificationId = verificationId;
           isLoading = false;
         });
         _showOTPDialog();
       },
       codeAutoRetrievalTimeout: (String verificationId) {
-        setState(() {
+        if (mounted) setState(() {
           _verificationId = verificationId;
         });
       },
@@ -172,29 +187,21 @@ class _SignupScreenState extends State<SignupScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: kColorWhite,
-        title: const Column(
-          children: [
-            Center(child: Text("Enter Verification Code",
-              textAlign:TextAlign.center,)),
+        title: Column(
+          children: const [
+            Center(child: Text("Enter Verification Code", textAlign: TextAlign.center)),
             Padding(
               padding: EdgeInsets.only(top: 4.0, left: 10.0),
-              child: Text(
-                '*Wait for 5 seconds to auto submit',
-                style: kDialogStyle,
-              ),
+              child: Text('*Wait for 5 seconds to auto submit', style: kDialogStyle),
             ),
             Padding(
               padding: EdgeInsets.only(left: 10.0),
-              child: Text(
-                '*OTP expires in 60 seconds',
-                style: kDialogStyle,
-              ),
+              child: Text('*OTP expires in 60 seconds', style: kDialogStyle),
             ),
           ],
         ),
         content: MyTextField(
-          displayIcon: const Icon(Icons.password, color:
-          kColorMidNightBlue),
+          displayIcon: const Icon(Icons.password, color: kColorMidNightBlue),
           isPassword: false,
           controller: otpController,
           isNumber: true,
@@ -208,25 +215,28 @@ class _SignupScreenState extends State<SignupScreen> {
             color: kColorMidNightBlue,
             onPressed: () async {
               if (otpController.text.isNotEmpty && _verificationId != null) {
+                if (mounted) setState(() => isLoading = true);
                 PhoneAuthCredential credential = PhoneAuthProvider.credential(
                   verificationId: _verificationId!,
                   smsCode: otpController.text,
                 );
+
                 try {
-                  UserCredential userCredential = await _firebaseAuth.signInWithCredential(credential);
+                  final userCredential = await _firebaseAuth.signInWithCredential(credential);
                   if (userCredential.user != null) {
-                    Navigator.pop(context);
-                    _signup();
+                    Navigator.pop(context); // close dialog
+                    await _signup();
                   } else {
+                    if (mounted) setState(() => isLoading = false);
                     myLogoAlert(
                       context: context,
-                      message: "Phone verification failed. Please try again.",
+                      message: "Verification failed. Try again.",
                       navigateEnabled: false,
                       route: '',
                     );
                   }
-
                 } catch (e) {
+                  if (mounted) setState(() => isLoading = false);
                   myLogoAlert(
                     context: context,
                     message: e.toString(),
@@ -258,7 +268,6 @@ class _SignupScreenState extends State<SignupScreen> {
         backgroundColor: kColorWhite,
         body: Stack(
           children: [
-
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -278,7 +287,6 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       const SizedBox(height: 10),
 
-
                       MyTextFieldWhite(
                         displayIcon: const Icon(Icons.person, color: kColorBase),
                         isPassword: false,
@@ -286,11 +294,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         isNumber: false,
                         isLast: true,
                         displayLabel: 'First Name',
-                        onChanged: (value) {
-                          firstnameController.text = value;
-                        },
+                        onChanged: (value) => firstnameController.text = value,
                       ),
-
                       MyTextFieldWhite(
                         displayIcon: const Icon(Icons.person, color: kColorBase),
                         isPassword: false,
@@ -298,11 +303,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         isNumber: false,
                         isLast: true,
                         displayLabel: 'Last Name',
-                        onChanged: (value) {
-                          lastnameController.text = value;
-                        },
+                        onChanged: (value) => lastnameController.text = value,
                       ),
-
                       MyTextFieldWhite(
                         displayIcon: const Icon(Icons.phone, color: kColorBase),
                         isPassword: false,
@@ -310,11 +312,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         isNumber: false,
                         isLast: true,
                         displayLabel: 'Mobile No.',
-                        onChanged: (value) {
-                          mobileController.text = value;
-                        },
+                        onChanged: (value) => mobileController.text = value,
                       ),
-
                       MyTextFieldWhite(
                         displayIcon: const Icon(Icons.email, color: kColorBase),
                         isPassword: false,
@@ -322,11 +321,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         isNumber: false,
                         isLast: true,
                         displayLabel: 'Email ID',
-                        onChanged: (value) {
-                          emailController.text = value;
-                        },
+                        onChanged: (value) => emailController.text = value,
                       ),
-
                       MyTextFieldWhite(
                         displayIcon: const Icon(Icons.add_home_outlined, color: kColorBase),
                         isPassword: false,
@@ -334,11 +330,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         isNumber: false,
                         isLast: true,
                         displayLabel: 'City',
-                        onChanged: (value) {
-                          cityController.text = value;
-                        },
+                        onChanged: (value) => cityController.text = value,
                       ),
-
                       MyTextFieldWhite(
                         displayIcon: const Icon(Icons.add_location_sharp, color: kColorBase),
                         isPassword: false,
@@ -346,11 +339,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         isNumber: false,
                         isLast: true,
                         displayLabel: 'State',
-                        onChanged: (value) {
-                          stateController.text = value;
-                        },
+                        onChanged: (value) => stateController.text = value,
                       ),
-
                       MyTextFieldWhite(
                         displayIcon: const Icon(Icons.vpn_key, color: kColorBase),
                         isPassword: true,
@@ -358,24 +348,19 @@ class _SignupScreenState extends State<SignupScreen> {
                         isNumber: false,
                         isLast: true,
                         displayLabel: 'Password',
-                        onChanged: (value) {
-                          passwordController.text = value;
-                        },
+                        onChanged: (value) => passwordController.text = value,
                       ),
                       const SizedBox(height: 24),
-                      isLoading
-                          ? const CircularProgressIndicator()
-                          : MyButton(
+
+                     MyButton(
                         title: 'SignUp',
                         color: kColorMidNightBlue,
                         width: screenWidth * 0.8,
-                        textColor:
-                        kColorBase,
+                        textColor: kColorBase,
                         onPressed: () {
                           if (_areFieldsValid()) {
-
-                             _startPhoneNumberVerification(
-                                mobileController.text);
+                           // _signup();
+                            _startPhoneNumberVerification(mobileController.text);
                           } else {
                             myLogoAlert(
                               context: context,
@@ -385,7 +370,6 @@ class _SignupScreenState extends State<SignupScreen> {
                             );
                           }
                         },
-
                       ),
                       const SizedBox(height: 30),
                       Button(
@@ -403,6 +387,11 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
             ),
+            if (isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
           ],
         ),
       ),

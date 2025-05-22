@@ -50,19 +50,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD7iaj1zYzFvlPgx60aMfdqZKW7-sIFenY',
-    appId: '1:74228757335:android:6c2f53e3152eec43dec412',
-    messagingSenderId: '74228757335',
-    projectId: 'indiapuc-ba78d',
-    storageBucket: 'indiapuc-ba78d.firebasestorage.app',
+    apiKey: 'AIzaSyAxpTC_xFwNo8Tbppd6v7IAfXKr5uyYrho',
+    appId: '1:238933568109:android:ce8a9b17ffc17a10192d64',
+    messagingSenderId: '238933568109',
+    projectId: 'pucindia-150a4',
+    storageBucket: 'pucindia-150a4.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyA9ChpWu1yWdVDP7lglgku_cuPIguE_znk',
-    appId: '1:74228757335:ios:06e98b31eccd7942dec412',
-    messagingSenderId: '74228757335',
-    projectId: 'indiapuc-ba78d',
-    storageBucket: 'indiapuc-ba78d.firebasestorage.app',
+    apiKey: 'AIzaSyBMhKTTGRd4acsPnqRnkYF0XSNwMWjHIhQ',
+    appId: '1:238933568109:ios:a246a24b5af5005e192d64',
+    messagingSenderId: '238933568109',
+    projectId: 'pucindia-150a4',
+    storageBucket: 'pucindia-150a4.firebasestorage.app',
     iosBundleId: 'com.awt.puc',
   );
 

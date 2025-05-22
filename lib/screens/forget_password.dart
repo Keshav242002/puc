@@ -34,7 +34,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   @override
   void initState() {
     super.initState();
-    fireApp = Firebase.initializeApp();
+
   }
 
   Future<void> getUserPrefData() async {

@@ -7,6 +7,7 @@ import 'package:puc/screens/myvehicles.dart';
 import 'package:puc/utils/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../screens/login_screen.dart';
+import 'package:puc/screens/myprofile.dart';
 
 class NewDrawer extends StatelessWidget {
   const NewDrawer({super.key});
@@ -54,7 +55,7 @@ class NewDrawer extends StatelessWidget {
             ),
             onPressed: () {
               Navigator.of(context).pop();
-             // Navigator.pushNamed(context, MyProfile.id);
+              Navigator.pushNamed(context, MyProfile.id);
             },
           ),
           DrawerTile(

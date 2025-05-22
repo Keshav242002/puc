@@ -390,9 +390,9 @@ class _DashboardState extends State<Dashboard> {
               ),
               SizedBox(width: 3),
               Text(
-                " PUC India All Rights Reserved | Powered by Avik Technologies",
+                "PUC India All Rights Reserved|Powered by Avik Technologies",
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 10,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),

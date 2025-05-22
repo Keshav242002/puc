@@ -46,11 +46,11 @@ class _ApplyPUCState extends State<ApplyPUC> {
   void _updatePucAmount(String? vehicleType) {
     setState(() {
       if (vehicleType == 'Bike') {
-        pucAmount = 1;
+        pucAmount = 65;
       } else if (vehicleType == 'Car Petrol') {
-        pucAmount = 2;
+        pucAmount = 85;
       } else if (vehicleType == 'Car Diesel') {
-        pucAmount = 3;
+        pucAmount = 115;
       } else {
         pucAmount = 0;
       }
@@ -369,7 +369,7 @@ class _ApplyPUCState extends State<ApplyPUC> {
 
   void verifyPayment(String orderId) {
     print("Payment successful. Order ID: $orderId");
-    print("Verifying payment using test keys, no backend verification.");
+
     print("Payment response: {\"order_id\": \"$orderId\", \"status\": \"SUCCESS\"}");
     applypuc(
         context,
