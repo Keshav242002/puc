@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kColorMidNightBlue,
+      backgroundColor: kColorWhite,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -41,7 +41,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const CircularProgressIndicator(color: kColorWhite),
+            const CircularProgressIndicator(color: kColorMidNightBlue),
             const SizedBox(height: 20),
             const Text(
               'Welcome To PUC India',

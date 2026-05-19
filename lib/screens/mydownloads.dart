@@ -1,10 +1,8 @@
-import 'dart:io';
-
-import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:puc/components/drawer.dart';
 import 'package:puc/screens/dashboard.dart';
+import 'package:puc/utils/api_helper.dart';
+import 'package:puc/utils/api_urls.dart';
 import 'package:puc/utils/constants.dart';
 import 'package:puc/utils/mylogoalert.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,58 +26,38 @@ class _MyDownloadsState extends State<MyDownloads> {
   }
 
   void importpuclink() async {
-    var dio = Dio();
-    dio.options.baseUrl = kAPIBaseURL;
-    dio.options.connectTimeout = const Duration(seconds: 5);
-    dio.options.receiveTimeout = const Duration(seconds: 5);
-    dio.interceptors.add(LogInterceptor(requestBody: false));
-    dio.options.headers["Authorization"] = "Bearer $glbAuthToken";
-    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-    String url = '/uploadpuc/$glbID';
+    final response = await ApiHelper.get(
+      context,
+      ApiUrls.uploadPuc(glbID),
+      showLoader: false,
+    );
 
-    try {
-      final response = await dio.get(url);
-      if (response.data["status"] == true) {
-        var data = response.data["data"];
-        if (data is List) {
-          setState(() {
-            vehicles = data;
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            vehicles = [data];
-            isLoading = false;
-          });
-        }
-
-        if (vehicles.isEmpty) {
-          myLogoAlert(
-            context: context,
-            message: "No record found",
-            navigateEnabled: false,
-            route: '',
-          );
-        }
-      } else {
+    if (response != null && response.data["status"] == true) {
+      var data = response.data["data"];
+      if (data is List) {
         setState(() {
+          vehicles = data;
           isLoading = false;
         });
+      } else {
+        setState(() {
+          vehicles = [data];
+          isLoading = false;
+        });
+      }
+
+      if (vehicles.isEmpty) {
         myLogoAlert(
           context: context,
-          message: response.data["message"],
+          message: "No record found",
           navigateEnabled: false,
           route: '',
         );
       }
-    } catch (e) {
+    } else {
       setState(() {
         isLoading = false;
       });
-      print("Error: $e");
     }
   }
 

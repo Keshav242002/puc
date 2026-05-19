@@ -1,13 +1,9 @@
-import 'dart:io';
-
-import 'package:dio/io.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter/services.dart';
 import 'package:puc/components/mytextfieldicon.dart';
 import 'package:puc/screens/dashboard.dart';
+import 'package:puc/utils/api_helper.dart';
+import 'package:puc/utils/api_urls.dart';
 import 'package:puc/utils/mylogoalert.dart';
 import 'package:puc/utils/shared_prefrences.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,13 +24,11 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   bool isLoading = false;
   double scrWidth = 0;
   String myPwd = '';
-  var fireApp;
   TextEditingController uMobile = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-
   }
 
   Future<void> getUserPrefData() async {
@@ -50,33 +44,27 @@ class _ForgotPasswordState extends State<ForgotPassword> {
       isLoading = true;
     });
 
-    var dio = Dio();
-    dio.options.baseUrl = kAPIBaseURL;
-    dio.options.connectTimeout = const Duration(milliseconds: 8000);
-    dio.options.receiveTimeout = const Duration(milliseconds: 8000);
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
-        (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-    String url = '/auth/login';
     final payload = {
       "phone": uMobile.text,
       "password": myPwd,
     };
 
-    final response = await dio.post(url, data: payload);
+    final response = await ApiHelper.post(
+      context,
+      ApiUrls.login,
+      data: payload,
+      requiresAuth: false,
+      showLoader: false,
+    );
 
-    if (response.data["status"]) {
+    if (response != null && response.data["status"]) {
       final data = response.data["data"];
       glbMemName = data["first_name"] + " " + data["last_name"];
       glbID = data["_id"];
       glbMobNo = data["phone"];
       glbEmail = data["email"];
-      glbCity=data["city"];
-      glbState=data["state"];
+      glbCity = data["city"];
+      glbState = data["state"];
       glbPwd = myPwd;
       glbAuthToken = response.data["token"];
       print(glbEmail);
@@ -87,13 +75,6 @@ class _ForgotPasswordState extends State<ForgotPassword> {
 
       Navigator.pop(context);
       Navigator.pushNamed(context, Dashboard.id);
-    } else {
-      myLogoAlert(
-        message: response.data["message"],
-        context: context,
-        navigateEnabled: false,
-        route: '',
-      );
     }
 
     setState(() {
@@ -117,216 +98,176 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   }
 
   Future<void> _retrievePassword() async {
-    var dio = Dio();
-    dio.options.baseUrl = kAPIBaseURL;
-    dio.options.connectTimeout = const Duration(milliseconds: 5000);
-    dio.options.receiveTimeout = const Duration(milliseconds: 5000);
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
-        (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-
-    String url = '/auth/forgotPassword';
-
     final payload = {
       "phone": uMobile.text,
-
     };
 
-    try {
-      final response = await dio.post(url, data: payload);
-      if (response.data["status"]) {
-        final data = response.data["data"];
-        myPwd=data["password"];
+    final response = await ApiHelper.post(
+      context,
+      ApiUrls.forgotPassword,
+      data: payload,
+      requiresAuth: false,
+      showLoader: false,
+    );
 
-      }
-      else if (mounted) {
-        setState(() {
-          isLoading = false;
-          myLogoAlert(
-            message: response.data["message"] ?? "Password retrieval failed.",
-            context: context,
-            navigateEnabled: false,
-            route: '',
-          );
-        });
-      }
-    } catch (e) {
+    if (response != null && response.data["status"]) {
+      final data = response.data["data"];
+      myPwd = data["password"];
+    } else {
       if (mounted) {
         setState(() {
           isLoading = false;
-          myLogoAlert(
-            context: context,
-            navigateEnabled: false,
-            route: '',
-            message: e.toString(),
-          );
         });
       }
     }
   }
+
   Future<void> _validateNumber(String phone, BuildContext context) async {
-    var dio = Dio();
-    dio.options.baseUrl = kAPIBaseURL;
-    dio.options.connectTimeout = const Duration(milliseconds: 5000);
-    dio.options.receiveTimeout = const Duration(milliseconds: 5000);
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
-        (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-
-    String url = '/auth/forgotPassword';
-
     final payload = {
       "phone": uMobile.text,
-
     };
 
-    await dio.post(url, data: payload).then((value) async {
-      if (value.data["status"]) {
-        // Proceed with Firebase phone number verification
-        final FirebaseAuth fbAuth = FirebaseAuth.instance;
-        phone = '+91$phone';
+    final response = await ApiHelper.post(
+      context,
+      ApiUrls.forgotPassword,
+      data: payload,
+      requiresAuth: false,
+      showLoader: false,
+    );
 
-        fbAuth.verifyPhoneNumber(
-            phoneNumber: phone,
-            timeout: const Duration(seconds: 60),
-            verificationCompleted: (AuthCredential authCred) {
-              fbAuth.signInWithCredential(authCred).then((UserCredential result) async {
-                // Retrieve password and log in
-                await _retrievePassword();
-                _loginUser();
-                isLoading=true;
-              }).catchError((e) {
-                setState(() {
-                  isLoading = false;
-                  myLogoAlert(
-                      context: context,
-                      navigateEnabled: false,
-                      route: '',
-                      message: e.toString());
-                });
-              });
-            },
-            verificationFailed: (FirebaseAuthException ex) {
+    if (response == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    if (response.data["status"]) {
+      // Proceed with Firebase phone number verification
+      final FirebaseAuth fbAuth = FirebaseAuth.instance;
+      phone = '+91$phone';
+
+      fbAuth.verifyPhoneNumber(
+          phoneNumber: phone,
+          timeout: const Duration(seconds: 60),
+          verificationCompleted: (AuthCredential authCred) {
+            fbAuth.signInWithCredential(authCred).then((UserCredential result) async {
+              // Retrieve password and log in
+              await _retrievePassword();
+              _loginUser();
+              isLoading = true;
+            }).catchError((e) {
               setState(() {
                 isLoading = false;
                 myLogoAlert(
                     context: context,
                     navigateEnabled: false,
                     route: '',
-                    message: ex.toString());
+                    message: e.toString());
               });
-            },
-            codeSent: (String verificationId, int? forceResendingToken) {
-              final code = TextEditingController();
+            });
+          },
+          verificationFailed: (FirebaseAuthException ex) {
+            setState(() {
+              isLoading = false;
+              myLogoAlert(
+                  context: context,
+                  navigateEnabled: false,
+                  route: '',
+                  message: ex.toString());
+            });
+          },
+          codeSent: (String verificationId, int? forceResendingToken) {
+            final code = TextEditingController();
 
-              showDialog(
-
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => AlertDialog(
-                  backgroundColor: kColorWhite,
-                  title: const Column(
-                    children: [
-                      Center(child: Text("Enter Verification Code",
-                        textAlign:TextAlign.center,)),
-                      Padding(
-                        padding: EdgeInsets.only(top: 4.0, left: 10.0),
-                        child: Text(
-                          '*Wait for 5 seconds to auto submit',
-                          style: kDialogStyle,
-                        ),
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                backgroundColor: kColorWhite,
+                title: const Column(
+                  children: [
+                    Center(child: Text("Enter Verification Code",
+                      textAlign: TextAlign.center,)),
+                    Padding(
+                      padding: EdgeInsets.only(top: 4.0, left: 10.0),
+                      child: Text(
+                        '*Wait for 5 seconds to auto submit',
+                        style: kDialogStyle,
                       ),
-                      Padding(
-                        padding: EdgeInsets.only(left: 10.0),
-                        child: Text(
-                          '*OTP expires in 60 seconds',
-                          style: kDialogStyle,
-                        ),
-                      ),
-                    ],
-                  ),
-                  content: MyTextFieldWhite(
-                    displayIcon: const Icon(
-                      Icons.password,
-                      color: Colors.blue,
                     ),
-                    isPassword: false,
-                    controller: code,
-                    isNumber: true,
-                    displayLabel: 'Enter OTP',
-                    isLast: true,
-                    onChanged: (val) {
-                      code.text = val;
-                    },
-                  ),
-                  actions: [
-                    MyButton(
-                      title: 'Submit',
-                      color: kColorMidNightBlue,
-                      onPressed: () {
-                        if (code.text == '') {
-                          //do nothing
-                        } else {
-                          var cred = PhoneAuthProvider.credential(
-                              verificationId: verificationId,
-                              smsCode: code.text);
-                          fbAuth.signInWithCredential(cred).then((UserCredential result) async {
-                            Navigator.pop(context);
-                            // Retrieve password and log in
-                            isLoading=true;
-                            await _retrievePassword();
-                            _loginUser();
-                          }).catchError((e) {
-                            Navigator.pop(context);
-                            setState(() {
-                              isLoading = false;
-                              myLogoAlert(
-                                  context: context,
-                                  navigateEnabled: false,
-                                  route: '',
-                                  message: e.toString());
-                            });
-                          });
-                        }
-                      },
-                      width: 100, textColor: kColorWhite,),
+                    Padding(
+                      padding: EdgeInsets.only(left: 10.0),
+                      child: Text(
+                        '*OTP expires in 60 seconds',
+                        style: kDialogStyle,
+                      ),
+                    ),
                   ],
                 ),
-              );
-            },
-            codeAutoRetrievalTimeout: (String verificationId) {
-              verificationId = verificationId;
-            }
-
+                content: MyTextFieldWhite(
+                  displayIcon: const Icon(
+                    Icons.password,
+                    color: Colors.blue,
+                  ),
+                  isPassword: false,
+                  controller: code,
+                  isNumber: true,
+                  displayLabel: 'Enter OTP',
+                  isLast: true,
+                  onChanged: (val) {
+                    code.text = val;
+                  },
+                ),
+                actions: [
+                  MyButton(
+                    title: 'Submit',
+                    color: kColorMidNightBlue,
+                    onPressed: () {
+                      if (code.text == '') {
+                        //do nothing
+                      } else {
+                        var cred = PhoneAuthProvider.credential(
+                            verificationId: verificationId,
+                            smsCode: code.text);
+                        fbAuth.signInWithCredential(cred).then((UserCredential result) async {
+                          Navigator.pop(context);
+                          // Retrieve password and log in
+                          isLoading = true;
+                          await _retrievePassword();
+                          _loginUser();
+                        }).catchError((e) {
+                          Navigator.pop(context);
+                          setState(() {
+                            isLoading = false;
+                            myLogoAlert(
+                                context: context,
+                                navigateEnabled: false,
+                                route: '',
+                                message: e.toString());
+                          });
+                        });
+                      }
+                    },
+                    width: 100, textColor: kColorWhite,),
+                ],
+              ),
             );
-      } else {
-        setState(() {
-          isLoading = false;
-          myLogoAlert(
-              context: context,
-              navigateEnabled: false,
-              route: '',
-              message: value.data["message"]);
-        });
-      }
-    }).catchError((e) {
+          },
+          codeAutoRetrievalTimeout: (String verificationId) {
+            verificationId = verificationId;
+          }
+      );
+    } else {
       setState(() {
         isLoading = false;
         myLogoAlert(
             context: context,
             navigateEnabled: false,
             route: '',
-            message: e.toString());
+            message: response.data["message"]);
       });
-    });
+    }
   }
 
   void _handleCancel() {
@@ -448,14 +389,3 @@ class _ForgotPasswordState extends State<ForgotPassword> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-

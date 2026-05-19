@@ -11,7 +11,7 @@ import 'package:puc/screens/login_screen.dart';
 import 'package:puc/screens/mydownloads.dart';
 import 'package:puc/screens/myprofile.dart';
 import 'package:puc/screens/myvehicles.dart';
-import 'package:puc/screens/singup_screen.dart';
+import 'package:puc/screens/signup_screen.dart';
 import 'package:puc/screens/splash_screen.dart';
 import 'screens/dashboard.dart';
 

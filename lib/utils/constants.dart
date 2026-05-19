@@ -43,7 +43,7 @@ const kListNameStyles =
 TextStyle(fontSize: 16.0, color: kColorBase, );
 
 const kHeadingStyle =
-TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: kColorWhite);
+TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: kColorMidNightBlue);
 
 const kTextFieldStyle =
 TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, color: kColorMidNightBlue);

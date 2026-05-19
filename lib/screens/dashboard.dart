@@ -1,12 +1,10 @@
-import 'dart:io';
-
-import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:puc/components/drawer.dart';
 import 'package:puc/screens/myprofile.dart';
+import 'package:puc/utils/api_helper.dart';
+import 'package:puc/utils/api_urls.dart';
 import 'package:puc/utils/constants.dart';
 import 'applypucform.dart';
 
@@ -31,37 +29,22 @@ class _DashboardState extends State<Dashboard> {
 
 
   Future<void> _importBanners() async {
-    var dio = Dio();
-    dio.options.baseUrl = kAPIBaseURL;
-    dio.options.connectTimeout = const Duration(milliseconds: 5000);
-    dio.options.receiveTimeout = const Duration(milliseconds: 5000);
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-    dio.options.headers["Authorization"] = "Bearer $glbAuthToken";
+    final response = await ApiHelper.get(
+      context,
+      ApiUrls.dashboard,
+      showLoader: false,
+    );
 
-    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-    String url = '/dashboard';
-
-    try {
-      final response = await dio.get(url);
-
-      if (response.statusCode == 200) {
-        final data = response.data["data"] as List;
-        setState(() {
-          displayBanner = data.map((banner) => banner["banner"] as String).toList();
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to load banners');
-      }
-    } catch (e) {
+    if (response != null) {
+      final data = response.data["data"] as List;
+      setState(() {
+        displayBanner = data.map((banner) => banner["banner"] as String).toList();
+        isLoading = false;
+      });
+    } else {
       setState(() {
         isLoading = false;
       });
-      print("Error loading banners: $e");
     }
   }
 
@@ -376,29 +359,32 @@ class _DashboardState extends State<Dashboard> {
             ],
                 ),
               ),
-      bottomNavigationBar: BottomAppBar(
-        color: kColorMidNightBlue.withOpacity(0.5),
-        child: const Padding(
-          padding: EdgeInsets.all(10.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.copyright,
-                size: 12,
-                color: Colors.white,
-              ),
-              SizedBox(width: 3),
-              Text(
-                "PUC India All Rights Reserved|Powered by Avik Technologies",
-                style: TextStyle(
-                  fontSize: 10,
+      bottomNavigationBar: SizedBox(
+        height: 40, // 👈 set your desired height
+        child: BottomAppBar(
+          color: kColorMidNightBlue.withOpacity(0.5),
+          padding: EdgeInsets.zero, // 🔥 remove internal padding
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10.0), // no vertical padding
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.copyright,
+                  size: 12,
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                SizedBox(width: 3),
+                Text(
+                  "PUC India All Rights Reserved",
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

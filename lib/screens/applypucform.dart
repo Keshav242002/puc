@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
@@ -13,6 +12,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:io' as io;
 import 'package:puc/components/mytextfieldnoicon.dart';
 import 'package:puc/screens/dashboard.dart';
+import 'package:puc/utils/api_helper.dart';
+import 'package:puc/utils/api_urls.dart';
 import 'package:puc/utils/mylogoalert.dart';
 import '../components/drawer.dart';
 import '../utils/constants.dart';
@@ -192,57 +193,34 @@ class _ApplyPUCState extends State<ApplyPUC> {
     required String cfOrderId,
     required String pucID,
   }) async {
-    setState(() {
-      isLoading = true;
+    FormData formData = FormData.fromMap({
+      "vehicle_type": selectedVehicleType,
+      "rc": vehicleNumberController.text,
+      "vehicle_model": vehicleModelController.text,
+      "vehicle_name": vehicleNameController.text,
+      "order_id": orderId,
+      "order_amount": orderAmount,
+      "cf_order_id": cfOrderId,
+      "puc_id": pucID,
+      "vehicle_front_ph": await MultipartFile.fromFile(
+        frontImage!.path,
+        filename: frontImage!.path.split('/').last,
+        contentType: MediaType('image', 'jpeg'),
+      ),
+      "vehicle_back_ph": await MultipartFile.fromFile(
+        rearImage!.path,
+        filename: rearImage!.path.split('/').last,
+        contentType: MediaType('image', 'jpeg'),
+      ),
     });
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return Center(child: CircularProgressIndicator());
-      },
+    final response = await ApiHelper.postMultipart(
+      context,
+      ApiUrls.applyPUC,
+      data: formData,
     );
 
-    var dio = Dio();
-    dio.options.baseUrl = kAPIBaseURL;
-    dio.options.connectTimeout = const Duration(milliseconds: 8000);
-    dio.options.receiveTimeout = const Duration(milliseconds: 8000);
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-    dio.options.headers["Authorization"] = "Bearer $glbAuthToken";
-    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-    String url = '/for/applyPUC';
-
-    try {
-      FormData formData = FormData.fromMap({
-        "vehicle_type": selectedVehicleType,
-        "rc": vehicleNumberController.text,
-        "vehicle_model": vehicleModelController.text,
-        "vehicle_name": vehicleNameController.text,
-        "order_id": orderId,
-        "order_amount": orderAmount,
-        "cf_order_id": cfOrderId,
-        "puc_id": pucID,
-        "vehicle_front_ph": await MultipartFile.fromFile(
-          frontImage!.path,
-          filename: frontImage!.path.split('/').last,
-          contentType: MediaType('image', 'jpeg'),
-        ),
-        "vehicle_back_ph": await MultipartFile.fromFile(
-          rearImage!.path,
-          filename: rearImage!.path.split('/').last,
-          contentType: MediaType('image', 'jpeg'),
-        ),
-      });
-
-      final response = await dio.post(url, data: formData);
-
-      Navigator.of(context).pop();
-
+    if (response != null) {
       String paymentStatus = response.data["data"]?["payments_details"]?["payment_status"] ?? "";
       bool status = response.data["status"] ?? false;
 
@@ -268,14 +246,6 @@ class _ApplyPUCState extends State<ApplyPUC> {
           route: Dashboard.id,
         );
       }
-    } catch (e) {
-      Navigator.of(context).pop();
-      myLogoAlert(
-        message: "Failed to submit PUC form. Please try again.",
-        context: context,
-        navigateEnabled: false,
-        route: '',
-      );
     }
   }
 
@@ -311,58 +281,40 @@ class _ApplyPUCState extends State<ApplyPUC> {
   }
 
 
-
-
-
   void createOrder(BuildContext context) async {
     setState(() {
       isLoading = true;
     });
 
-    var dio = Dio();
-    dio.options.baseUrl = kAPIBaseURL;
-    dio.options.connectTimeout = const Duration(milliseconds: 8000);
-    dio.options.receiveTimeout = const Duration(milliseconds: 8000);
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-    dio.options.headers["Authorization"] = "Bearer $glbAuthToken";
-    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (HttpClient client) {
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-    String url = '/order/create';
     final payload = {
       "order_amount": pucAmount,
     };
 
-    try {
-      Response response = await dio.post(url, data: payload);
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        var responseData = response.data;
-         orderId = responseData['order_id'];
-         paymentSessionId = responseData['payment_session_id'];
-         cfOrderId=responseData['cf_order_id'].toString();
-         pucID=responseData['_id'];
+    final response = await ApiHelper.post(
+      context,
+      ApiUrls.createOrder,
+      data: payload,
+    );
 
+    if (response != null) {
+      var responseData = response.data;
+      orderId = responseData['order_id'];
+      paymentSessionId = responseData['payment_session_id'];
+      cfOrderId = responseData['cf_order_id'].toString();
+      pucID = responseData['_id'];
 
-        print("Order ID: $orderId");
-        print("Payment Session ID: $paymentSessionId");
-        print(pucID);
-        print(cfOrderId);
-        print("Full Response: ${response.data}");
+      print("Order ID: $orderId");
+      print("Payment Session ID: $paymentSessionId");
+      print(pucID);
+      print(cfOrderId);
+      print("Full Response: ${response.data}");
 
-
-        initiateWebCheckout(orderId, paymentSessionId);
-      } else {
-        print("Failed to create order. Status code: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Error creating order: $e");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      initiateWebCheckout(orderId, paymentSessionId);
     }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
 
@@ -383,10 +335,6 @@ class _ApplyPUCState extends State<ApplyPUC> {
   void onError(CFErrorResponse errorResponse, String orderId) {
     print("Error while making payment: ${errorResponse.getMessage()}");
   }
-
-
-
-
 
 
 
